@@ -1,0 +1,107 @@
+-- Criação do Banco de Dados
+CREATE DATABASE SistemaControleEstoque;
+
+-- Selecionando o Banco de Dados para uso
+USE SistemaControleEstoque;
+
+-- Criação da Tabela de Fornecedores
+CREATE TABLE Fornecedores (
+    id_fornecedor INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    contato VARCHAR(100),
+    telefone VARCHAR(20)
+);
+
+-- Criação da Tabela de Produtos
+CREATE TABLE Produtos (
+    id_produto INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    preco DECIMAL(10, 2) NOT NULL,
+    quantidade_estoque INT NOT NULL,
+    id_fornecedor INT,
+    FOREIGN KEY (id_fornecedor) REFERENCES Fornecedores(id_fornecedor) ON DELETE SET NULL
+);
+
+-- Criação da Tabela de Pedidos de Reposição
+CREATE TABLE PedidosReposicao (
+    id_pedido INT AUTO_INCREMENT PRIMARY KEY,
+    id_produto INT,
+    quantidade INT NOT NULL,
+    data_pedido DATE NOT NULL,
+    status ENUM('Pendente', 'Recebido', 'Cancelado') DEFAULT 'Pendente',
+    FOREIGN KEY (id_produto) REFERENCES Produtos(id_produto) ON DELETE CASCADE
+);
+
+-- Inserção de Fornecedores
+INSERT INTO Fornecedores (nome, contato, telefone) VALUES
+('Fornecedor A', 'Contato A', '(11) 91234-5678'),
+('Fornecedor B', 'Contato B', '(21) 93456-7890'),
+('Fornecedor C', 'Contato C', '(31) 98765-4321');
+
+-- Inserção de Produtos
+INSERT INTO Produtos (nome, descricao, preco, quantidade_estoque, id_fornecedor) VALUES
+('Produto X', 'Descrição do Produto X', 50.00, 100, 1),
+('Produto Y', 'Descrição do Produto Y', 25.00, 200, 2),
+('Produto Z', 'Descrição do Produto Z', 75.00, 150, 3);
+
+-- Inserção de Pedidos de Reposição
+INSERT INTO PedidosReposicao (id_produto, quantidade, data_pedido, status) VALUES
+(1, 50, '2024-09-01', 'Pendente'),
+(2, 100, '2024-09-10', 'Recebido'),
+(3, 75, '2024-09-15', 'Pendente');
+
+-- Consulta para verificar todos os produtos em estoque
+SELECT * FROM Produtos;
+
+-- Consulta para listar todos os pedidos de reposição feitos
+SELECT * FROM PedidosReposicao;
+
+-- Consulta para obter informações sobre os fornecedores
+SELECT * FROM Fornecedores;
+
+-- Consulta para verificar produtos e suas respectivas informações de fornecedor
+SELECT
+    Produtos.nome AS nome_produto,
+    Produtos.quantidade_estoque,
+    Fornecedores.nome AS nome_fornecedor,
+    Fornecedores.telefone
+FROM Produtos
+JOIN Fornecedores ON Produtos.id_fornecedor = Fornecedores.id_fornecedor;
+
+-- Consulta para verificar todos os pedidos de reposição para um produto específico (por exemplo, produto com id = 1)
+SELECT
+    PedidosReposicao.id_pedido,
+    PedidosReposicao.quantidade,
+    PedidosReposicao.data_pedido,
+    PedidosReposicao.status
+FROM PedidosReposicao
+WHERE PedidosReposicao.id_produto = 1;
+
+-- Atualização da quantidade de produtos em estoque após o recebimento de um pedido de reposição
+-- Atualizando a quantidade de estoque para o produto com id = 1 após o pedido de reposição
+UPDATE Produtos
+SET quantidade_estoque = quantidade_estoque + (
+    SELECT COALESCE(SUM(quantidade), 0)
+    FROM PedidosReposicao
+    WHERE id_produto = 1 AND status = 'Recebido'
+)
+WHERE id_produto = 1;
+
+-- Atualização do status de um pedido de reposição (por exemplo, marcar o pedido com id = 1 como 'Recebido')
+UPDATE PedidosReposicao
+SET status = 'Recebido'
+WHERE id_pedido = 1;
+
+-- Deleção de produtos descontinuados (por exemplo, deletar produtos com id = 3)
+DELETE FROM Produtos
+WHERE id_produto = 3;
+
+-- Deleção de fornecedores que não fazem mais parte da empresa (por exemplo, fornecedor com id = 2)
+-- Atenção: Deleção de fornecedores também pode afetar a tabela Produtos se houver um relacionamento em cascata.
+DELETE FROM Fornecedores
+WHERE id_fornecedor = 2;
+
+-- Cancelamento de pedidos de reposição que não são mais necessários (por exemplo, cancelar pedidos com id = 1)
+DELETE FROM PedidosReposicao
+WHERE id_pedido = 1;
